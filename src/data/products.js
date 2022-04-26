@@ -17,8 +17,13 @@ const exportedMethods = {
 
   async createProduct(userId, features, unitPrice){
 
-    if (!usersData.getUserById(ObjectId(userId))) throw '';
+    if (!userId) throw "userId must be provided";
+    if (!features) throw "features must be provided";
+    if (!unitPrice) throw "unitPrice must be provided";
+    
+    if (!await usersData.getUserById(ObjectId(userId))) throw 'No user Found';
 
+    const productsCollection = await products();
 
     var newProduct = {
       features: {
@@ -36,11 +41,26 @@ const exportedMethods = {
       overall_score: 0
     }
 
+    const newInsertInformation = await productsCollection.insertOne(newProduct);
+    if (newInsertInformation.insertedCount === 0) throw 'Insert failed!';
+    await usersData.addProductsInUsers(userId, newInsertInformation.insertedId.toString());
     return { productInserted: true };
   },  
   
-  async deleteProduct(userId, ProductId){
-    return;
+  async deleteProduct(userId, productId){
+
+    if (!userId) throw "userId must be provided";
+    if (!productId) throw "productId must be provided";
+
+    const productsCollection = await products();
+    if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
+    if (!ObjectId.isValid(productId)) throw "id is not a valid ObjectId";
+    if (!await this.getProductById(ObjectId(productId))) throw "No Product Found";
+
+    const deletionInfo = await productsCollection.deleteOne({ _id: ObjectId(productId) });
+    if (deletionInfo.deletedCount === 0) {throw '';}
+    await usersData.removeProductsInUsers(userId, productId);
+    return { productDeleted: true };
   },
 
   async createSession(productId, start, end){
@@ -52,6 +72,10 @@ const exportedMethods = {
   },
   
   async searchProduct(features){
+    return;
+  },
+
+  async addComment(userId, producctId, comment){
     return;
   }
   
