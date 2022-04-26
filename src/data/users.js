@@ -317,10 +317,6 @@ const exportedMethods = {
     }
     await usersCollection.updateOne({ _id: ObjectId(userId) }, { $set: purchaseData });
     return { purchaseUpdated: true }; 
-  },
-
-  async addComment(userId, ProductId, content, rating){
-    return;
   }
   
 }
