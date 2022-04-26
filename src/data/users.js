@@ -55,6 +55,33 @@ const exportedMethods = {
     return phone;
   },
 
+  checkCity(city){
+    if (typeof city !== 'string') throw '';
+    var city = city.trim();
+    if (!/(^[A-Za-z\ ]+$)/.test(city)) throw '';
+    var cityStr = city.split(" ");    
+    for(var i = 0; i<cityStr.length; i++){
+      cityStr[i] = cityStr[i].slice(0,1).toUpperCase() + cityStr[i].slice(1).toLowerCase();
+    }    
+    return cityStr.join(" ");
+  },
+
+  checkState(state){
+    if (typeof state !== 'string') throw '';
+    var state = state.trim();
+    if (!/(^[A-Za-z]+$)/.test(state)) throw '';
+
+    return state.toUpperCase();
+  },
+
+  checkCountry(country){
+    if (typeof country !== 'string') throw '';
+    var country = country.trim();
+    if (!/(^[A-Za-z]+$)/.test(country)) throw '';
+
+    return country;
+  },
+
   checkZipCode(zipCode){
     if (typeof zipCode !== 'string') throw '';
     var zipCode = zipCode.trim();
@@ -64,17 +91,17 @@ const exportedMethods = {
   },
 
   async getUserByName(username){
-    const userCollection = await users();
+    const usersCollection = await users();
     const username_lower = username.toLowerCase();
-    const userInfo = await userCollection.findOne({ username: username_lower });
+    const userInfo = await usersCollection.findOne({ username: username_lower });
     if (!userInfo) return false;
     return userInfo;
   },
 
   async getUserById(userId){
-    const userCollection = await users();
+    const usersCollection = await users();
     if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
-    const userInfo = await userCollection.findOne({ _id: ObjectId(userId) });
+    const userInfo = await usersCollection.findOne({ _id: ObjectId(userId) });
     if (!userInfo) return false;
     return userInfo;
   },
@@ -96,12 +123,12 @@ const exportedMethods = {
       throw err;
     }
 
-    const saltRounds = 1;
+    const saltRounds = 10;
 
     const _username_ = this.checkUsername(username);
     const _password_ = await bcryptjs.hash(password, saltRounds)
 
-    const userCollection = await users();
+    const usersCollection = await users();
     const userInfo = await this.getUserByName(_username_);
     
     if (userInfo) throw "there is already a user with that username";
@@ -123,7 +150,7 @@ const exportedMethods = {
       },
       address: {
         city: "",
-        status: "",
+        state: "",
         country: "",
         zipCode: ""
       },
@@ -131,13 +158,13 @@ const exportedMethods = {
       sellingServers: []
     };
 
-    const newInsertInformation = await userCollection.insertOne(newUser);
+    const newInsertInformation = await usersCollection.insertOne(newUser);
     if (newInsertInformation.insertedCount === 0) throw 'Insert failed!';
     return { userInserted: true };
 
   },
 
-  async checkUser(username, password){
+  async checkUserLogin(username, password){
     if (!username) throw "username must be provided";
     if (!password) throw "password must be provided";
 
@@ -164,18 +191,18 @@ const exportedMethods = {
   },
 
   async deleteUser(userId){
-    const userCollection = await users();
+    const usersCollection = await users();
     if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
     if (!await this.getUserById(ObjectId(userId))) throw "No User Found";
 
-    const deletionInfo = await userCollection.deleteOne({ _id: ObjectId(userId) });
+    const deletionInfo = await usersCollection.deleteOne({ _id: ObjectId(userId) });
     if (deletionInfo.deletedCount === 0) {throw '';}
     return { userDeleted: true };
 
   },
 
   async modifyUserInformation(userId, updatedInfo){
-    const userCollection = await users();
+    const usersCollection = await users();
     if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
     if (!await this.getUserById(ObjectId(userId))) throw "No User Found";
     const updatedInfoData = {};
@@ -201,18 +228,31 @@ const exportedMethods = {
     }
 
     if (updatedInfo.city) {
+      try {
+        this.checkCity(updatedInfo.city);
+      } catch(err) {
+        throw err;
+      }
       if (!updatedInfoData.address) { updatedInfoData.address = {} };
       updatedInfoData.address.city = updatedInfo.city;
     }
 
-    if (updatedInfo.status) {
-      if (typeof updatedInfo.status !== 'string') throw '';
-      if (updatedInfo.status.trim())
+    if (updatedInfo.state) {
+      try {
+        this.checkState(updatedInfo.state);
+      } catch(err) {
+        throw err;
+      }
       if (!updatedInfoData.address) { updatedInfoData.address = {} };
-      updatedInfoData.address.status = updatedInfo.status;
+      updatedInfoData.address.state = updatedInfo.state;
     }
 
     if (updatedInfo.country) {
+      try {
+        this.checkCountry(updatedInfo.country);
+      } catch(err) {
+        throw err;
+      }
       if (!updatedInfoData.address) { updatedInfoData.address = {} };
       updatedInfoData.address.country = updatedInfo.country;
     }
@@ -227,17 +267,41 @@ const exportedMethods = {
       updatedInfoData.address.zipCode = this.checkZipCode(updatedInfo.zipCode);
     }
 
-    await userCollection.updateOne({ _id: ObjectId(userId) }, { $set: updatedInfoData });
+    await usersCollection.updateOne({ _id: ObjectId(userId) }, { $set: updatedInfoData });
 
     return { infoUpdated: true }; 
   },
 
+  async addProductsInUsers(userId, productId){
+    const usersCollection = await users();
+    if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
+    if (!ObjectId.isValid(productId)) throw "id is not a valid ObjectId";
+
+    if (!await this.getUserById(ObjectId(userId))) throw "No User Found";
+    if (!await productsData.getProductById(ObjectId(productId))) throw "No product Found";
+
+    updateProductData = {};
+    var userInfo = await this.getUserById(ObjectId(userId));
+
+    if (userInfo.sellingServers.indexOf(productId) == -1){
+      userInfo.sellingServers.push(productId);
+      updateProductData.sellingServers = userInfo.sellingServers;
+    } else {
+      throw 'exists';
+    }
+
+    await usersCollection.updateOne({ _id: ObjectId(userId) }, { $set: updateProductData });
+    return { productInserted: true }; 
+
+
+  },
+
   async addBuyingHistory(userId, sessionId){
-    const userCollection = await users();
+    const usersCollection = await users();
     if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
 
     if (!await this.getUserById(ObjectId(userId))) throw "No User Found";
-    PurchaseData = {};
+    purchaseData = {};
 
     if (!sessionId){
       throw '';
@@ -246,12 +310,12 @@ const exportedMethods = {
       if (!ObjectId.isValid(sessionId)) throw "id is not a valid ObjectId";
       if (userInfo.orderSessionHistory.indexOf(sessionId) == -1){
         userInfo.orderSessionHistory.push(sessionId);
-        PurchaseData.orderSessionHistory = userInfo.orderSessionHistory;
+        purchaseData.orderSessionHistory = userInfo.orderSessionHistory;
       } else {
         throw 'exists';
       }
     }
-    await userCollection.updateOne({ _id: ObjectId(userId) }, { $set: PurchaseData });
+    await usersCollection.updateOne({ _id: ObjectId(userId) }, { $set: purchaseData });
     return { purchaseUpdated: true }; 
   },
 
