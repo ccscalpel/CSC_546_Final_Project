@@ -1,6 +1,5 @@
 const mongoCollections = require('../config/mongoCollections');
 const users = mongoCollections.users;
-const products = mongoCollections.products;
 const bcryptjs = require('bcryptjs');
 const ObjectId = require('mongodb').ObjectId;
 
@@ -105,13 +104,18 @@ const exportedMethods = {
     return userInfo;
   },
 
-  async createUser(username, password, first_name, last_name){
+  async createUser(username, password, first_name, last_name, email, phone, city, state, country, zipCode){
 
     if (!username) throw "username must be provided";
     if (!password) throw "password must be provided";
     if (!first_name) throw "firstname must be provided";
     if (!last_name) throw "lastname must be provided";
-
+    if (!email) throw "email must be provided";
+    if (!phone) throw "phone must be provided";
+    if (!city) throw "city must be provided";
+    if (!state) throw "state must be provided";
+    if (!country) throw "country must be provided";
+    if (!zipCode) throw "zipCode must be provided";
 
     try {
       this.checkUsername(username);
@@ -137,14 +141,48 @@ const exportedMethods = {
       throw err;
     }
 
-    const saltRounds = 10;
+    try {
+      this.checkEmail(email);
+    } catch (err) {
+      throw err;
+    }
 
+    try {
+      this.checkPhone(phone);
+    } catch (err) {
+      throw err;
+    }
+
+    try {
+      this.checkCity(city);
+    } catch (err) {
+      throw err;
+    }
+
+    try {
+      this.checkState(state);
+    } catch (err) {
+      throw err;
+    }
+
+    try {
+      this.checkCountry(country);
+    } catch (err) {
+      throw err;
+    }
+
+    try {
+      this.checkZipCode(zipCode);
+    } catch (err) {
+      throw err;
+    }
+
+    const saltRounds = 10;
     const _username_ = this.checkUsername(username);
     const _password_ = await bcryptjs.hash(password, saltRounds)
 
     const usersCollection = await users();
     const userInfo = await this.getUserByName(_username_);
-    
     if (userInfo) throw "there is already a user with that username";
 
     let newUser = {
@@ -159,14 +197,14 @@ const exportedMethods = {
         last_name: this.checkName(last_name)
       },
       contacts: {
-        email: "",
-        phone: ""
+        email: this.checkEmail(email),
+        phone: this.checkPhone(phone)
       },
       address: {
-        city: "",
-        state: "",
-        country: "",
-        zipCode: ""
+        city: this.checkCity(city),
+        state: this.checkState(state),
+        country: this.checkCountry(country),
+        zipCode: this.checkZipCode(zipCode)
       },
       orderSessionHistory: [],
       sellingServers: []
@@ -287,7 +325,7 @@ const exportedMethods = {
   },
 
   async addProductsInUsers(userId, productId){
-    // won't be directly called. it will be called in productsData.createProduct()
+    // won't be directly called. it will only be called in productsData.createProduct()
     const usersCollection = await users();
     if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
     if (!ObjectId.isValid(productId)) throw "id is not a valid ObjectId";
@@ -309,7 +347,7 @@ const exportedMethods = {
   },
 
   async removeProductsInUsers(userId, productId){
-    // won't be directly called. it will be called in productsData.deleteProduct()
+    // won't be directly called. it will only be called in productsData.deleteProduct()
     const usersCollection = await users();
     if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
     if (!ObjectId.isValid(productId)) throw "id is not a valid ObjectId";
