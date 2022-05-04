@@ -61,20 +61,25 @@ const exportedMethods = {
     return { productDeleted: true };
   },
 
-  async createSession(productId, start, end, password){
+  async createSession(productId, userId, sessionId, start, end, link, password){
     if (!productId) throw "productId must be provided";
     if (!ObjectId.isValid(productId)) throw "id is not a valid ObjectId";
+    if (!userId) throw "userId must be provided";
+    if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
+    if (!sessionId) throw "sessionId must be provided";
+    if (!ObjectId.isValid(sessionId)) throw "id is not a valid ObjectId";
     if (!start) throw "start time must be provided";
     if (!end) throw "end time must be provided";
+    if (!link) throw "link must be provided";
     if (!password) throw "password must be provided";
 
     const saltRounds = 10;
 
     var sessionAddInfo = {
-      _id: "",
+      _id: sessionId,
       startTime: start,
       endTime: end,
-      link: "",
+      link: link,
       password: await bcryptjs.hash(password, saltRounds),
       active: true
     }
@@ -86,7 +91,7 @@ const exportedMethods = {
       sessions: productInfo.sessions
     }
     await productsCollection.updateOne({ _id: ObjectId(productId) }, { $set: updateInfo });
-
+    await usersData.addBuyingHistory(userId, sessionId);
 
     return { sessionCreated: true }
   },

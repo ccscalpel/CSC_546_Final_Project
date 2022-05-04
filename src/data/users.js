@@ -370,6 +370,7 @@ const exportedMethods = {
   },
 
   async addBuyingHistory(userId, sessionId){
+    // won't be directly called. it will only be called in productsData.createSession()
     const usersCollection = await users();
     if (!ObjectId.isValid(userId)) throw "id is not a valid ObjectId";
 
@@ -385,7 +386,7 @@ const exportedMethods = {
         userInfo.orderSessionHistory.push(sessionId);
         purchaseData.orderSessionHistory = userInfo.orderSessionHistory;
       } else {
-        throw 'exists';
+        throw 'sessionId exists';
       }
     }
     await usersCollection.updateOne({ _id: ObjectId(userId) }, { $set: purchaseData });

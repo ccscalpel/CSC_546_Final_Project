@@ -21,13 +21,21 @@ async function main(){
     console.log(e);
   }
   try{
-    await usersData.createUser("DTrump","DT123123","Donald","trump","DTrump@gmail.com","2012148888","NYC","NY","US","07111");
+    await usersData.createUser("will123","DT123123","Donald","trump","DTrump@gmail.com","2012148888","NYC","NY","US","07111");
   } catch (e){
     console.log(e);
   }
   try{
     const userInfo1 = await usersData.getUserByName("will123");
-    await productsData.createProduct(userInfo1._id.toString(), 1,1 )
+    await productsData.createProduct(userInfo1._id.toString(), 1, 1 )
+  } catch (e){
+    console.log(e);
+  }
+  try{
+    const userInfo1 = await usersData.getUserByName("will123");
+    const userInfo2 = await usersData.getUserByName("czhao123");
+    const productId = userInfo1.sellingServers[0];
+    await productsData.createSession(productId, userInfo2._id.toString(),'62705e1a3a2527653c3800f2',2020,2022,'123','1234321' )
   } catch (e){
     console.log(e);
   }
